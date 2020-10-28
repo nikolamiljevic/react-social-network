@@ -8,6 +8,9 @@ import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import MyTextInput from '../../../app/commom/form/MyTextInput';
 import MyTextArea from '../../../app/commom/form/MyTextarea';
+import MySelectInput from '../../../app/commom/form/MySelectInput';
+import { categoryData } from '../../../app/api/categoryOptions'
+import MyDateInput from '../../../app/commom/form/MyDateInput';
 
 export default function EventForm({match, history }) {
 
@@ -46,19 +49,28 @@ export default function EventForm({match, history }) {
                     history.push('/events')
                 }}
             >
+                {({isSubmitting, dirty, isValid}) => (
                 <Form className="ui form">
                     <Header sub color="teal" content="Event details" />
                         <MyTextInput name="title" placeholder="Event title" />
-                        <MyTextInput name="category" placeholder="Category" />
+                        <MySelectInput name="category" placeholder="Category" options={categoryData}/>
                         <MyTextArea name="description" placeholder="Description" rows={3} />
                     <Header sub color="teal" content="Event location details" />
                         <MyTextInput name="city" placeholder="City" />
                         <MyTextInput name="venue" placeholder="Venue" />
-                        <MyTextInput name="date" placeholder="Date" type="date"/>
-
-                    <Button type="submit" floated="right" positive content="Submit"/>
-                    <Button type="submit" floated="right" content="Cancel" as={Link} to="/events"/>
+                        <MyDateInput
+                            name="date" 
+                            placeholderText="Event date" 
+                            timeFormat="HH:mm" 
+                            showTimeSelect 
+                            timeCaption="time"
+                            dateFormat="MMMM d, yyyy h:mm a"
+                        />
+                    <Button loading={isSubmitting} disabled={!isValid || !dirty || isSubmitting} type="submit" floated="right" positive content="Submit"/>
+                    <Button disabled={isSubmitting} type="submit" floated="right" content="Cancel" as={Link} to="/events"/>
                 </Form> 
+                )}
+    
             </Formik>
         </Segment>
     )
