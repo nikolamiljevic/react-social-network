@@ -4,7 +4,7 @@ const CLOSE_MODAL = 'CLOSE_MODAL'
 export function openModal(payload) {
     return {
         type: OPEN_MODAL,
-        payload:{}
+        payload
     }
 }
 
@@ -23,8 +23,8 @@ export default function modalReducer(state = initialState, {type,payload}) {
            return {modalType, modalProps};
         case CLOSE_MODAL:
             return null;
-            
         default:
+            return state;
             break;
     }
 }
