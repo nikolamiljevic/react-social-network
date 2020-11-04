@@ -1,9 +1,9 @@
 import cuid from 'cuid';
 import React from 'react'
-import { Link } from 'react-router-dom';
+import { Link, Redirect } from 'react-router-dom';
 import { Button, Header, Segment } from 'semantic-ui-react'
 import { useSelector, useDispatch } from 'react-redux'
-import {createEvent, updateEvent} from '../eventActions'
+import {createEvent, listenToEvents, updateEvent} from '../eventActions'
 import { Formik, Form } from 'formik';
 import * as Yup from 'yup';
 import MyTextInput from '../../../app/commom/form/MyTextInput';
@@ -11,12 +11,17 @@ import MyTextArea from '../../../app/commom/form/MyTextarea';
 import MySelectInput from '../../../app/commom/form/MySelectInput';
 import { categoryData } from '../../../app/api/categoryOptions'
 import MyDateInput from '../../../app/commom/form/MyDateInput';
+import { addEventToFirestore, listenToEventFromFirestore, updateEventInFirestore } from '../../../app/firestore/firestoreService';
+import useFirestoreDoc from '../../../app/hooks/useFiresetoreDoc';
+import LoadingComponent from '../../../app/layout/LoadingComponent';
+import { toast } from 'react-toastify';
 
 export default function EventForm({match, history }) {
 
     const dispatch = useDispatch();
     const selectedEvent = useSelector(state => state.event.events.find(e => e.id === match.params.id))
-   
+    const {loading,error} = useSelector(state => state.async);
+
     const initialValues = selectedEvent ?? {
         title:'',
         category:'',
@@ -33,7 +38,18 @@ export default function EventForm({match, history }) {
         city: Yup.string().required('You must provide a city'),
         venue: Yup.string().required('You must provide a venue'),
         date: Yup.string().required('You must provide a date'),
-    })
+    });
+
+    
+    useFirestoreDoc({
+        shouldExecute: !!match.params.id,
+        query: () => listenToEventFromFirestore(match.params.id),
+        data: event => dispatch(listenToEvents([event])),
+        deps: [match.params.id, dispatch]
+    });
+
+    if(loading) return <LoadingComponent content="Loading event..."/>
+    if(error) return <Redirect to="/error"  />
 
     return (
         <Segment clearing>
@@ -42,11 +58,16 @@ export default function EventForm({match, history }) {
                 className="ui form"
                 initialValues={initialValues}
                 validationSchema={validationSchema}
-                onSubmit={values => {
-                    selectedEvent
-                    ? dispatch( updateEvent({...selectedEvent,...values})  )
-                    : dispatch( createEvent({...values,id:cuid(),hostedBy:'Mark',attendees:[], hostPhotoURL: '/assets/user.png'}) );
-                    history.push('/events')
+                onSubmit={async (values, {setSubmitting}) => {
+                    try {
+                        selectedEvent
+                        ? await updateEventInFirestore(values)
+                        : await addEventToFirestore(values)
+                        history.push('/events')
+                    } catch (error) {
+                        toast.error(error.message);
+                        setSubmitting(false);
+                    }
                 }}
             >
                 {({isSubmitting, dirty, isValid}) => (
